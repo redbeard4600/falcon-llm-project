@@ -1,0 +1,66 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Falcon 7B API",
+    "description": "API for text generation with Falcon 7B model",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/generate": {
+      "post": {
+        "summary": "Generate text from prompt",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "prompt": {
+                  "type": "string",
+                  "description": "Input text to generate from"
+                },
+                "max_length": {
+                  "type": "integer", 
+                  "default": 100,
+                  "description": "Maximum length of generated text"
+                },
+                "temperature": {
+                  "type": "number",
+                  "default": 0.7,
+                  "description": "Controls randomness (higher = more random)"
+                },
+                "top_p": {
+                  "type": "number",
+                  "default": 0.9,
+                  "description": "Controls diversity via nucleus sampling"
+                }
+              },
+              "required": ["prompt"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generated text",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "generated_text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    }
+  }
+}
