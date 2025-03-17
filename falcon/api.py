@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
-from .inference import load_model, generate_text, load_model_cpu
+from ..inference import load_model, generate_text, load_model_cpu
 
 app = Flask(__name__, static_folder='../static')
 model = None

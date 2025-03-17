@@ -1,5 +1,5 @@
 import argparse
-from falcon.inference import load_model, generate_text, load_pipeline_model
+from inference import load_model, generate_text, load_pipeline_model
 
 def main():
     parser = argparse.ArgumentParser(description="Falcon 7B CLI")

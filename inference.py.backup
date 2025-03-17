@@ -1,0 +1,81 @@
+# inference.py
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import os
+import time
+
+# Global variables for model and tokenizer
+model = None
+tokenizer = None
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def load_model(model_name="tiiuae/falcon-7b", use_cache=True):
+    """Load the model and tokenizer"""
+    global model, tokenizer
+    
+    # If model is already loaded and caching is enabled, return
+    if model is not None and tokenizer is not None and use_cache:
+        return model, tokenizer
+    
+    print(f"Loading model {model_name} on {device}...")
+    start_time = time.time()
+    
+    # Load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    # Load model with appropriate parameters
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+        device_map="auto" if torch.cuda.is_available() else None,
+        low_cpu_mem_usage=True if torch.cuda.is_available() else False,
+    )
+    
+    # Move model to device if not using device_map="auto"
+    if not torch.cuda.is_available():
+        model = model.to(device)
+    
+    print(f"Model loaded in {time.time() - start_time:.2f} seconds")
+    return model, tokenizer
+
+def generate_text(prompt, max_length=100, **kwargs):
+    """Generate text from a prompt"""
+    global model, tokenizer, device
+    
+    # Load model if not already loaded
+    if model is None or tokenizer is None:
+        model, tokenizer = load_model()
+    
+    start_time = time.time()
+    
+    # Tokenize input
+    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+    
+    # Generate
+    with torch.no_grad():
+        outputs = model.generate(
+            inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_length=max_length,
+            do_sample=True,
+            temperature=kwargs.get("temperature", 0.7),
+            top_p=kwargs.get("top_p", 0.9),
+            **{k: v for k, v in kwargs.items() if k not in ["temperature", "top_p"]}
+        )
+    
+    # Decode the output
+    completion = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    # Import here to avoid circular imports
+    from monitoring import monitor
+    
+    # Track the inference
+    stats = monitor.track_inference(tokenizer, prompt, completion)
+    
+    print(f"Text generated in {time.time() - start_time:.2f} seconds")
+    return completion, stats
+
+# Preload model if environment variable is set
+if os.environ.get("PRELOAD_MODEL", "0") == "1":
+    load_model()
